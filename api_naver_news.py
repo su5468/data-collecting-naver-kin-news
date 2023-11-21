@@ -12,8 +12,8 @@ def search(query: str, id: str, secret: str, total_pages: int) -> list:
     )
     headers = {"X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret}
     ret = []
-    for page in range(1, total_pages + 1):
-        res = requests.get(url + f"&start={page}", headers=headers, timeout=5)
+    for page in range(total_pages):
+        res = requests.get(url + f"&start={page * 100 + 1}", headers=headers, timeout=5)
         out_json = json.loads(res.text)
         for item in out_json["items"]:
             temp = {

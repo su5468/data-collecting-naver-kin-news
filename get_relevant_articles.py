@@ -32,7 +32,7 @@ async def get_nth_answer_async(
         "model": "gpt-3.5-turbo",
         "messages": base_query + [{"role": "user", "content": content}],
         "temperature": 0.5,
-        "request_timeout": 60,
+        "request_timeout": 30,
     }
     backoff = 5
     while True:
