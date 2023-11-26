@@ -6,7 +6,7 @@ import utils
 
 def main():
     keyword = "환자-의사 공유 의사결정"
-    filetype = utils.FileType.API_NAVER_NEWS
+    filetype = utils.FileType.NEWS
 
     urls = utils.get_news_urls(keyword, filetype)
     hosts = set((urlparse(url).hostname for url in urls))

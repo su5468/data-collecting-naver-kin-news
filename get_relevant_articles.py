@@ -1,10 +1,14 @@
 #!python
+
 import json
 import asyncio
 import openai
+import utils
 
 
-async def get_relatedness_list(articles: list, keyword, key: str, org: str) -> dict:
+async def get_relatedness_list(
+    articles: list, keyword: str, key: str, org: str
+) -> dict:
     openai.organization = org
     openai.api_key = key
 
@@ -61,30 +65,46 @@ async def get_nth_answer_async(
     return tf, reason
 
 
-async def main():
-    keyword = "환자-의사 공유 의사결정"
-    with open(f"api_naver_news_result_{keyword}.txt", encoding="utf-8") as f:
-        articles = json.loads(f.read())["items"]
-
-    with open("gpt_api_key.txt", encoding="utf-8") as f:
-        KEY, ORG = map(lambda x: x.strip(), f.readlines())
-
-    relatedness, reasons = zip(*await get_relatedness_list(articles, keyword, KEY, ORG))
-
-    with open(f"api_gpt_realtedness_result_{keyword}.txt", "wt", encoding="utf-8") as f:
-        wrapped = {"keyword": keyword, "relatedness": relatedness, "reasons": reasons}
-        json.dump(wrapped, f, ensure_ascii=False, indent=4)
-
-    related_articles = []
-    for i, e in enumerate(articles):
-        if not relatedness[i]:
+async def main(
+    keywords: list, filetype: utils.FileType, force_redo: bool = False
+) -> None:
+    wt = "with_text_" if filetype == utils.FileType.NEWS_WT else ""
+    for keyword in keywords:
+        fnames = (
+            f"{utils.FileType.NEWS_RL.value}_{wt}{keyword}.txt",
+            f"{utils.FileType.NEWS_R.value}_{wt}{keyword}.txt",
+        )
+        if not force_redo and utils.already(fnames):
             continue
-        related_articles.append(e)
 
-    with open(f"new_result_related_{keyword}.txt", "wt", encoding="utf-8") as f:
-        wrapped = {"keyword": keyword, "items": related_articles}
-        json.dump(wrapped, f, ensure_ascii=False, indent=4)
+        with open(f"{filetype.value}_{keyword}.txt", encoding="utf-8") as f:
+            articles = json.loads(f.read())["items"]
+
+        KEY, ORG = utils.get_key_org()
+
+        relatedness, reasons = zip(
+            *await get_relatedness_list(articles, keyword, KEY, ORG)
+        )
+
+        utils.write_json_on_file(
+            fnames[0],
+            wrapped={
+                "keyword": keyword,
+                "relatedness": relatedness,
+                "reasons": reasons,
+            },
+        )
+
+        related_articles = []
+        for i, e in enumerate(articles):
+            if not relatedness[i]:
+                continue
+            related_articles.append(e)
+
+        utils.write_json_on_file(
+            fnames[1], {"keyword": keyword, "items": related_articles}
+        )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(["환자-의사 공유 의사결정"], utils.FileType.NEWS))
