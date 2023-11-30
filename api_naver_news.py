@@ -1,9 +1,20 @@
 #!python
+# feel free to use this.
+# if you have any question, contact me.
+# 조건희( su5468@korea.ac.kr )
 
+from typing import List
 import utils
 
 
-def main(keywords: list, force_redo: bool = False) -> None:
+def main(keywords: List[str], force_redo: bool = False) -> None:
+    """
+    네이버 뉴스 검색 api를 사용해서 키워드들의 검색 결과를 파일로 저장함
+
+    Args:
+        keywords (List[str]): 키워드들의 리스트
+        force_redo (bool, optional): 이미 파일이 존재하는 경우에도 다시 수집할지의 여부. 기본적으로는 하지 않음
+    """
     url = "https://openapi.naver.com/v1/search/news.json"
     num_of_pages = 10
 
