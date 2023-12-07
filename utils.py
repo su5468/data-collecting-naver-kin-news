@@ -9,7 +9,10 @@ from os import path
 from encodings.aliases import aliases
 from enum import Enum
 from urllib import parse
+import urllib3
 import requests
+
+urllib3.disable_warnings()
 
 
 class FileType(Enum):
@@ -165,10 +168,28 @@ def compare_encoding(a: Optional[str], b: Optional[str]) -> bool:
     return aliases.get(a, a) == aliases.get(b, b)
 
 
+def get_host_from_url(url: str) -> str:
+    """
+    url에서 www를 제외한 host 부분을 추출해냄
+
+    Args:
+        url (str): 전체 url 문자열
+
+    Returns:
+        str: 해당 url의 host 중 맨 앞의 "www."을 제외한 부분
+    """
+    host = parse.urlparse(url).hostname
+    if host.startswith("www."):
+        host = host[4:]
+
+    return host
+
+
 def get_response_from_url(url: str) -> Optional[requests.models.Response]:
     """
     requests 모듈을 이용해 url에 get 요청을 보냄
     User-Agent 헤더를 설정하고 올바른 요청을 받지 못하는 경우 None을 반환함
+    데이터 수집의 용이성을 위해 SSL 인증이 꺼져 있으므로 인지할 것
     TODO: 지식인 쿠키 설정
 
     Args:
@@ -182,7 +203,9 @@ def get_response_from_url(url: str) -> Optional[requests.models.Response]:
         "Cookie": """NNB=RWL5HCA6VRRWK; kin_session="bXE9FAM/a9vsKxbmKxgqKxbwFxnmaqgsKAnmaqgsKAnmaqgsKAnwFAnw"; JSESSIONID=6F1D263953F1392D221F888ECFA1B6AF; nid_inf=875898310; NID_AUT=h3L76rKLNAOjgW/c2Y6/WVlV2WWvwyZFobiWiz4IYVV3ONulyEN6fM0tWXcM+ppt; NID_SES=AAABhk1mJO9hkMAQTmYE3ISmSZd1zs/536ZwMCyPP7VuCMq3o4N2GS9ZkvL5daKgoJqGPVXeuyKxOaTZvZtQd7jhdcIFJ/LFaK74iwrjpI8p2ZeTe0A4PtSyxdp3+AuhBrQa5evWtQsGau6Bbz8D4Mu66UxuQarcs0fszqwWxWoyP+RBjbIFXv1JSzDLtCJqFYxq1YmzfoJ6h7EnVmz8Ueo64+cIrWRWITaksecFN5mc/je4TwoFOYikVtWkNxiulc+M06v97aYG6lqJZS9JRkT0dCMYL7o0ERQQ6rBQ6LfG2RpYty/gmAEBv5z0YYDHmLHN+7B4off2cUM5wpDJzzQbYemlyQYIBJb1w9kTgeEoj7eC+1RAcvdjYsMCVtJ/31HBwJMbMnUa/GW6p0PEh4voBwEtDnQMqCMTgt/p/EvvtvEiWBPdy1pEy2GPicx75mAEPr32L4aGf+j+Fce5hOINurbzK131zt4hu1CknclO2J9ixY9fPbPyogM8+oZfpWCQoZ7sjtiFo+yd0XxDCrY+ero=; NID_JKL=S/JCbq2t+16ccKoeou0HBf/l7bybFrpgUqLZSgse3t0=""",
     }
     try:
-        res = requests.get(url, headers=headers, timeout=5)
+        res = requests.get(
+            url, headers=headers, timeout=5, verify=False, allow_redirects=True
+        )
         res.raise_for_status()
     except (
         requests.exceptions.HTTPError,

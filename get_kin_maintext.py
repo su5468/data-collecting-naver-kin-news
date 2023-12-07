@@ -3,7 +3,7 @@
 # if you have any question, contact me.
 # 조건희( su5468@korea.ac.kr )
 
-from typing import List, Dict, Tuple, Optional
+from typing import List, Tuple
 import re
 import requests
 from bs4 import BeautifulSoup
