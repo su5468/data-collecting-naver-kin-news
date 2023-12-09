@@ -4,28 +4,31 @@
 # 조건희( su5468@korea.ac.kr )
 
 from typing import List, Tuple
-import re
 import requests
 from bs4 import BeautifulSoup
 import utils
 
 
-def get_answer_and_date(t: str) -> Tuple[str, str]:
+def get_answer_and_date(answer: BeautifulSoup) -> Tuple[str, str]:
     """
-    정규표현식에 기반해 지식IN 답변 문자열을 답변 본문과 날짜로 분리함
-    TODO: 정규표현식보다 본문의 태그를 살려서 bs4로 파싱하도록 리팩토링하는 게 좋을 듯
+    지식IN 답변이 들어 있는 bs4 객체를 받아서 답변 내용과 날짜 문자열로 분리함
 
     Args:
-        t (str): 지식IN 답변 문자열
+        answer (BeautifulSoup): 지식IN 답변 BeautifulSoup 객체
 
     Returns:
         Tuple[str, str]: 답변 본문과 그 답변이 달린 날짜의 튜플
     """
-    disclaimer = "(알아두세요!?\n([본위] 답변은.*|\n1.)|.*)"
-    mat = re.match(
-        r"(.*)" + disclaimer + r".*(\d{4}\.\d{2}\.\d{2})", t, re.DOTALL
-    ).groups()
-    return mat[0], mat[-1]
+    answer_text_selector = "div._endContentsText"
+    answer_date_selector = "p.c-heading-answer__content-date"
+
+    answer_text = answer.select_one(answer_text_selector)
+    answer_date = answer.select_one(answer_date_selector)
+
+    return (
+        "" if answer_text is None else answer_text.get_text(),
+        "" if answer_date is None else answer_date.get_text(),
+    )
 
 
 def get_kin_text_from_res(
@@ -45,21 +48,21 @@ def get_kin_text_from_res(
     with open("temp.txt", "wt", encoding="utf8") as f:
         f.write(res.text)
 
-    q_selector = "div.c-heading__content"
-    a_selector = "div._endContents"
-    q_d_selector = "span.c-userinfo__info"
-    q = soup.select_one(q_selector)
-    a = soup.select(a_selector)
-    q_d = soup.select_one(q_d_selector)
+    question_selector = "div.c-heading__content"
+    answers_selector = "div._endContents"
+    question_date_selector = "span.c-userinfo__info"
+    question = soup.select_one(question_selector)
+    answers = soup.select(answers_selector)
+    question_date = soup.select_one(question_date_selector)
 
-    if q is None:
-        q = soup.select_one("div.c-heading__title")
-        if q is None:
+    if question is None:
+        question = soup.select_one("div.c-heading__title")
+        if question is None:
             return ("", ""), ([], [])
 
     return (
-        (q.get_text(), q_d.get_text()[3:]),
-        tuple(zip(*[get_answer_and_date(e.get_text()) for e in a])),
+        (question.get_text(), question_date.get_text()[3:]),
+        tuple(zip(*map(get_answer_and_date, answers))),
     )
 
 
@@ -108,11 +111,11 @@ def main(keywords: List[str], force_redo: bool = False) -> None:
             article["date"] = d
 
             # TODO: 실험용 코드
-            if i == 5:
-                break
+            # if i == 10:
+            #     break
 
         utils.write_json_on_file(fname, {"keyword": keyword, "items": articles})
-        break
+        # break
 
 
 if __name__ == "__main__":

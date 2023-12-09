@@ -3,7 +3,6 @@
 import gzip
 import time
 import re
-from urllib import parse
 import requests
 from bs4 import BeautifulSoup
 import utils
