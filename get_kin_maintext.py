@@ -110,14 +110,8 @@ def main(keywords: List[str], force_redo: bool = False) -> None:
             article["answers"] = a
             article["date"] = d
 
-            # TODO: 실험용 코드
-            # if i == 10:
-            #     break
-
         utils.write_json_on_file(fname, {"keyword": keyword, "items": articles})
-        # break
 
 
 if __name__ == "__main__":
-    # TODO: 실험용 코드
-    main(["환자 의견", "환자 권리", "환자 요구"], True)
+    main(["환자 의견", "환자 권리", "환자 요구"])

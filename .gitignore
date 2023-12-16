@@ -1,5 +1,8 @@
 *.txt
 *.pdf
+*.png
+*.zip
+*.pptx
 .vscode/
 .venv/
 __pycache__/

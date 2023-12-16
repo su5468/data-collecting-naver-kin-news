@@ -222,4 +222,4 @@ def main(keywords: list, filetype: utils.FileType, force_redo: bool = False) -> 
 
 
 if __name__ == "__main__":
-    main(["환자-의사 공유 의사결정"], utils.FileType.NEWS, True)
+    main(["환자 의사 공유의사결정"], utils.FileType.CRAWL_NEWS, True)

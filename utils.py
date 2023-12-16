@@ -4,13 +4,17 @@
 # 조건희( su5468@korea.ac.kr )
 
 from typing import List, Dict, Tuple, Optional
+import re
+import time
 import json
+import datetime as dt
 from os import path
 from encodings.aliases import aliases
 from enum import Enum
 from urllib import parse
 import urllib3
 import requests
+from bs4 import BeautifulSoup
 
 urllib3.disable_warnings()
 
@@ -22,17 +26,24 @@ class FileType(Enum):
     파일명은 f"{filetype.value}_{keyword}.txt" 형식임
     """
 
+    WT = "_with_text"
+
     NEWS = "api_naver_news_result"
-    NEWS_WT = NEWS + "_with_text"
+    NEWS_WT = NEWS + WT
     NEWS_R = "news_result_related"
-    NEWS_R_WT = NEWS_R + "_with_text"
+    NEWS_R_WT = NEWS_R + WT
     KIN = "api_naver_kin_result"
-    KIN_WT = KIN + "_with_text"
+    KIN_WT = KIN + WT
     KIN_R = "kin_result_related"
-    KIN_R_WT = KIN_R + "_with_text"
+    KIN_R_WT = KIN_R + WT
 
     NEWS_RL = "api_gpt_relatedness_result"
-    NEWS_RL_WT = NEWS_RL + "_with_text"
+    NEWS_RL_WT = NEWS_RL + WT
+
+    CRAWL_NEWS = "crawl_naver_news_result"
+    CRAWL_KIN = "crawl_naver_kin_result"
+    CRAWL_NEWS_WT = CRAWL_NEWS + WT
+    CRAWL_KIN_WT = CRAWL_KIN + WT
 
 
 def get_id_secret() -> Tuple[str, str]:
@@ -132,7 +143,7 @@ def write_json_on_file(fname: str, wrapped: dict | list) -> None:
 
 def get_json_from_file(fname: str) -> dict | list:
     """
-    fname인 json 파일을 읽거
+    fname인 json 파일을 읽어서 items 부분만 파이썬 객체로 반환한다
 
     Args:
         fname (str): 파일명 문자열(확장자 포함)
@@ -185,32 +196,107 @@ def get_host_from_url(url: str) -> str:
     return host
 
 
-def get_response_from_url(url: str) -> Optional[requests.models.Response]:
+def get_response_from_url(
+    url: str, retry: int = 0
+) -> Optional[requests.models.Response]:
     """
     requests 모듈을 이용해 url에 get 요청을 보냄
     User-Agent 헤더를 설정하고 올바른 요청을 받지 못하는 경우 None을 반환함
+    여러 번(기본은 1번만) 시도할 수 있으며, 2 ** (i - 1)초의 백오프가 발생함
     데이터 수집의 용이성을 위해 SSL 인증이 꺼져 있으므로 인지할 것
     TODO: 지식인 쿠키 설정
 
     Args:
         url (str): get 요청을 보낼 url
+        retry (int): 요청이 실패한 경우 재시도할 횟수
 
     Returns:
         Optional[requests.models.Response]: 응답 결과인 requests 모듈의 response 객체거나, 올바르지 않은 결과인 경우 None
     """
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Cookie": """NNB=RWL5HCA6VRRWK; kin_session="bXE9FAM/a9vsKxbmKxgqKxbwFxnmaqgsKAnmaqgsKAnmaqgsKAnwFAnw"; JSESSIONID=6F1D263953F1392D221F888ECFA1B6AF; nid_inf=875898310; NID_AUT=h3L76rKLNAOjgW/c2Y6/WVlV2WWvwyZFobiWiz4IYVV3ONulyEN6fM0tWXcM+ppt; NID_SES=AAABhk1mJO9hkMAQTmYE3ISmSZd1zs/536ZwMCyPP7VuCMq3o4N2GS9ZkvL5daKgoJqGPVXeuyKxOaTZvZtQd7jhdcIFJ/LFaK74iwrjpI8p2ZeTe0A4PtSyxdp3+AuhBrQa5evWtQsGau6Bbz8D4Mu66UxuQarcs0fszqwWxWoyP+RBjbIFXv1JSzDLtCJqFYxq1YmzfoJ6h7EnVmz8Ueo64+cIrWRWITaksecFN5mc/je4TwoFOYikVtWkNxiulc+M06v97aYG6lqJZS9JRkT0dCMYL7o0ERQQ6rBQ6LfG2RpYty/gmAEBv5z0YYDHmLHN+7B4off2cUM5wpDJzzQbYemlyQYIBJb1w9kTgeEoj7eC+1RAcvdjYsMCVtJ/31HBwJMbMnUa/GW6p0PEh4voBwEtDnQMqCMTgt/p/EvvtvEiWBPdy1pEy2GPicx75mAEPr32L4aGf+j+Fce5hOINurbzK131zt4hu1CknclO2J9ixY9fPbPyogM8+oZfpWCQoZ7sjtiFo+yd0XxDCrY+ero=; NID_JKL=S/JCbq2t+16ccKoeou0HBf/l7bybFrpgUqLZSgse3t0=""",
+        # "Cookie": """NNB=RWL5HCA6VRRWK; kin_session="bXE9FAM/a9vsKxbmKxgqKxbwFxnmaqgsKAnmaqgsKAnmaqgsKAnwFAnw"; JSESSIONID=6F1D263953F1392D221F888ECFA1B6AF; nid_inf=875898310; NID_AUT=h3L76rKLNAOjgW/c2Y6/WVlV2WWvwyZFobiWiz4IYVV3ONulyEN6fM0tWXcM+ppt; NID_SES=AAABhk1mJO9hkMAQTmYE3ISmSZd1zs/536ZwMCyPP7VuCMq3o4N2GS9ZkvL5daKgoJqGPVXeuyKxOaTZvZtQd7jhdcIFJ/LFaK74iwrjpI8p2ZeTe0A4PtSyxdp3+AuhBrQa5evWtQsGau6Bbz8D4Mu66UxuQarcs0fszqwWxWoyP+RBjbIFXv1JSzDLtCJqFYxq1YmzfoJ6h7EnVmz8Ueo64+cIrWRWITaksecFN5mc/je4TwoFOYikVtWkNxiulc+M06v97aYG6lqJZS9JRkT0dCMYL7o0ERQQ6rBQ6LfG2RpYty/gmAEBv5z0YYDHmLHN+7B4off2cUM5wpDJzzQbYemlyQYIBJb1w9kTgeEoj7eC+1RAcvdjYsMCVtJ/31HBwJMbMnUa/GW6p0PEh4voBwEtDnQMqCMTgt/p/EvvtvEiWBPdy1pEy2GPicx75mAEPr32L4aGf+j+Fce5hOINurbzK131zt4hu1CknclO2J9ixY9fPbPyogM8+oZfpWCQoZ7sjtiFo+yd0XxDCrY+ero=; NID_JKL=S/JCbq2t+16ccKoeou0HBf/l7bybFrpgUqLZSgse3t0=""",
     }
+    for i in range(retry + 1):
+        try:
+            res = requests.get(
+                url, headers=headers, timeout=5, verify=False, allow_redirects=True
+            )
+            res.raise_for_status()
+            return res
+        except (
+            requests.exceptions.HTTPError,
+            requests.exceptions.Timeout,
+            requests.exceptions.ConnectionError,
+        ):
+            time.sleep(2 ** (i - 1))
+    return None
+
+
+def search_crawl(
+    keyword: str, where: str, count: int = 300
+) -> List[Dict[str, Optional[str]]]:
+    base_url = f"https://search.naver.com/search.naver?where={where}&query={keyword}"
+    ret = []
+    for year in range(1990, 2024):
+        print(f"year {year} is starting...")
+        for start in range(1, count, 10):
+            time.sleep(0.5)
+            url = base_url + f"&pd=3&ds={year}.01.01&de={year}.12.31&start={start}"
+            res = get_response_from_url(url, 8)
+
+            if res is None:
+                return ret
+
+            soup = BeautifulSoup(res.text, "html.parser")
+
+            title_selector = "a.news_tit"
+            temp_titles = soup.select(title_selector)
+            if not temp_titles:
+                break
+            temp_dates = soup.select("span.info")
+
+            titles = [x.get_text() for x in temp_titles]
+            links = [x["href"] for x in temp_titles]
+            dates = [
+                parse_date_str(x.get_text())
+                for x in temp_dates
+                if parse_date_str(x.get_text())
+            ]
+
+            ret += [
+                {
+                    "title": title,
+                    "url_naver": link,
+                    "url_original": None,
+                    "description": None,
+                    "date": date,
+                }
+                for title, link, date in zip(titles, links, dates)
+            ]
+    return ret
+
+
+def parse_date_str(cand: str) -> str:
+    """
+    날짜를 나타내는 문자열일 수 있는 후보 문자열을 받아서,
+    날짜 문자열이거나 N일 전, N주 전이면 해당하는 날짜를 문자열로 반환하고,
+    그렇지 않으면 빈 문자열을 반환
+
+    Args:
+        cand (str): 날짜 문자열로 추측되는 후보 문자열
+
+    Returns:
+        str: "%Y.%m.%d.", 즉 "YYYY.MM.DD."꼴의 날짜 문자열
+    """
     try:
-        res = requests.get(
-            url, headers=headers, timeout=5, verify=False, allow_redirects=True
-        )
-        res.raise_for_status()
-    except (
-        requests.exceptions.HTTPError,
-        requests.exceptions.Timeout,
-        requests.exceptions.ConnectionError,
-    ):
-        return None
-    return res
+        ret = dt.datetime.strptime(cand, "%Y.%m.%d.")
+    except ValueError:
+        today = dt.date.today()
+        if re.match(r"\d일 전", cand):
+            ret = today - dt.timedelta(days=int(cand[0]))
+        elif re.match(r"\d주 전", cand):
+            ret = today - dt.timedelta(weeks=int(cand[0]))
+        else:
+            return ""
+    return ret.strftime("%Y.%m.%d.")
