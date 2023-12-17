@@ -76,7 +76,7 @@ def get_kin_text_from_url(url: str) -> Tuple[str, List[str], List[str]]:
     Returns:
         Tuple[str, List[str], List[str]]: (질문 본문, [답변 본문들], [질문 날짜, 답변 날짜들])
     """
-    res = utils.get_response_from_url(url)
+    res = utils.get_response_from_url(url, cookie=utils.get_request_cookie())
     if res is None:
         return "request_error", [], []
     (q, q_d), (a, a_d) = get_kin_text_from_res(res)
@@ -99,7 +99,9 @@ def main(keywords: List[str], force_redo: bool = False) -> None:
         if not force_redo and utils.already(fname):
             continue
 
-        articles = utils.get_json_from_file(f"{utils.FileType.KIN.value}_{keyword}.txt")
+        articles = utils.get_json_from_file(
+            f"{utils.FileType.KIN.value}_{keyword}.txt"
+        )["items"]
         for i, article in enumerate(articles):
             if i % 100 == 0:
                 print(f"{i}'th article completed")

@@ -18,6 +18,9 @@ from bs4 import BeautifulSoup
 
 urllib3.disable_warnings()
 
+MATERIALS = "materials"
+RESULTS = "results"
+
 
 class FileType(Enum):
     """
@@ -48,26 +51,32 @@ class FileType(Enum):
 
 def get_id_secret() -> Tuple[str, str]:
     """
-    naver_api_key.txt의 첫째 줄과 둘째 줄에서 ID와 SECRET을 읽어들이는 함수
+    MATERIALS 폴더, naver_api_key.txt의 첫째 줄과 둘째 줄에서 ID와 SECRET을 읽어들이는 함수
 
     Returns:
         Tuple[str, str]: naver api를 위한 id, secret의 튜플
     """
-    with open("naver_api_key.txt", encoding="utf-8") as f:
+    with open(f"{MATERIALS}/naver_api_key.txt", encoding="utf-8") as f:
         id, secret = map(lambda x: x.strip(), f.readlines())
     return id, secret
 
 
 def get_key_org() -> Tuple[str, str]:
     """
-    gpt_api_key.txt의 첫째 줄과 둘째 줄에서 KEY와 ORGANIZATION을 읽어들이는 함수
+    MATERIALS 폴더, gpt_api_key.txt의 첫째 줄과 둘째 줄에서 KEY와 ORGANIZATION을 읽어들이는 함수
 
     Returns:
         Tuple[str, str]: openai api를 위한 key, organization의 튜플
     """
-    with open("gpt_api_key.txt", encoding="utf-8") as f:
+    with open(f"{MATERIALS}/gpt_api_key.txt", encoding="utf-8") as f:
         key, org = map(lambda x: x.strip(), f.readlines())
     return key, org
+
+
+def get_request_cookie() -> str:
+    with open(f"{MATERIALS}/request_cookie.txt", encoding="utf-8") as f:
+        cookie = f.read().strip()
+    return cookie
 
 
 def already(fname: str | List[str]) -> bool:
@@ -143,7 +152,7 @@ def write_json_on_file(fname: str, wrapped: dict | list) -> None:
 
 def get_json_from_file(fname: str) -> dict | list:
     """
-    fname인 json 파일을 읽어서 items 부분만 파이썬 객체로 반환한다
+    fname인 json 파일을 읽어서 파이썬 객체로 반환한다
 
     Args:
         fname (str): 파일명 문자열(확장자 포함)
@@ -152,8 +161,8 @@ def get_json_from_file(fname: str) -> dict | list:
         dict | list: json 파일의 내용물을 파이썬 객체로 변환한 결과
     """
     with open(fname, "rt", encoding="utf-8") as f:
-        articles = json.load(f)["items"]
-    return articles
+        ret = json.load(f)
+    return ret
 
 
 def compare_encoding(a: Optional[str], b: Optional[str]) -> bool:
@@ -197,26 +206,28 @@ def get_host_from_url(url: str) -> str:
 
 
 def get_response_from_url(
-    url: str, retry: int = 0
+    url: str, retry: int = 0, cookie: Optional[str] = None
 ) -> Optional[requests.models.Response]:
     """
     requests 모듈을 이용해 url에 get 요청을 보냄
     User-Agent 헤더를 설정하고 올바른 요청을 받지 못하는 경우 None을 반환함
     여러 번(기본은 1번만) 시도할 수 있으며, 2 ** (i - 1)초의 백오프가 발생함
     데이터 수집의 용이성을 위해 SSL 인증이 꺼져 있으므로 인지할 것
-    TODO: 지식인 쿠키 설정
 
     Args:
         url (str): get 요청을 보낼 url
         retry (int): 요청이 실패한 경우 재시도할 횟수
+        cookie (Optional[str]): 쿠키를 설정한 경우 헤더에 쿠키를 추가해서 보냄
 
     Returns:
         Optional[requests.models.Response]: 응답 결과인 requests 모듈의 response 객체거나, 올바르지 않은 결과인 경우 None
     """
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        # "Cookie": """NNB=RWL5HCA6VRRWK; kin_session="bXE9FAM/a9vsKxbmKxgqKxbwFxnmaqgsKAnmaqgsKAnmaqgsKAnwFAnw"; JSESSIONID=6F1D263953F1392D221F888ECFA1B6AF; nid_inf=875898310; NID_AUT=h3L76rKLNAOjgW/c2Y6/WVlV2WWvwyZFobiWiz4IYVV3ONulyEN6fM0tWXcM+ppt; NID_SES=AAABhk1mJO9hkMAQTmYE3ISmSZd1zs/536ZwMCyPP7VuCMq3o4N2GS9ZkvL5daKgoJqGPVXeuyKxOaTZvZtQd7jhdcIFJ/LFaK74iwrjpI8p2ZeTe0A4PtSyxdp3+AuhBrQa5evWtQsGau6Bbz8D4Mu66UxuQarcs0fszqwWxWoyP+RBjbIFXv1JSzDLtCJqFYxq1YmzfoJ6h7EnVmz8Ueo64+cIrWRWITaksecFN5mc/je4TwoFOYikVtWkNxiulc+M06v97aYG6lqJZS9JRkT0dCMYL7o0ERQQ6rBQ6LfG2RpYty/gmAEBv5z0YYDHmLHN+7B4off2cUM5wpDJzzQbYemlyQYIBJb1w9kTgeEoj7eC+1RAcvdjYsMCVtJ/31HBwJMbMnUa/GW6p0PEh4voBwEtDnQMqCMTgt/p/EvvtvEiWBPdy1pEy2GPicx75mAEPr32L4aGf+j+Fce5hOINurbzK131zt4hu1CknclO2J9ixY9fPbPyogM8+oZfpWCQoZ7sjtiFo+yd0XxDCrY+ero=; NID_JKL=S/JCbq2t+16ccKoeou0HBf/l7bybFrpgUqLZSgse3t0=""",
     }
+    if cookie is not None:
+        headers["Cookie"] = cookie
+
     for i in range(retry + 1):
         try:
             res = requests.get(
@@ -228,8 +239,12 @@ def get_response_from_url(
             requests.exceptions.HTTPError,
             requests.exceptions.Timeout,
             requests.exceptions.ConnectionError,
+            requests.exceptions.ChunkedEncodingError,
         ):
             time.sleep(2 ** (i - 1))
+        except requests.exceptions.TooManyRedirects as e:
+            print(e)
+            print(url)
     return None
 
 

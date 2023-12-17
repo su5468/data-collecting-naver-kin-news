@@ -1,15 +1,18 @@
 #!python
 
-from urllib.parse import urlparse
 import utils
 
 
 def main():
-    keyword = "환자-의사 공유 의사결정"
-    filetype = utils.FileType.NEWS
+    hosts = set()
+    keyword = "환자 의사 공유의사결정"
+    filetype = utils.FileType.CRAWL_NEWS
 
-    urls = utils.get_news_urls(keyword, filetype)
-    hosts = set((urlparse(url).hostname for url in urls))
+    articles = utils.get_json_from_file(f"{filetype.value}_{keyword}.txt")["items"]
+    for article in articles:
+        url = article["url_naver"]
+        host = utils.get_host_from_url(url)
+        hosts.add(host)
 
     with open(f"hosts_{filetype.value}_{keyword}.txt", "wt", encoding="utf-8") as f:
         print(*hosts, sep="\n", file=f)
