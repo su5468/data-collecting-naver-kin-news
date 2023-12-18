@@ -43,6 +43,9 @@ def get_news_text_from_res(
         result = soup.select_one(selector)
         if result is None:
             continue
+        ret = get_text_from_soup(result, host, maps["attribute"])
+        if len(ret) < utils.NEWS_MAINTEXT_LOWER_BOUND:
+            continue
         return get_text_from_soup(result, host, maps["attribute"])
 
     for selector in maps["selector_set"]:
@@ -50,7 +53,7 @@ def get_news_text_from_res(
         if result is None:
             continue
         ret = get_text_from_soup(result, host, maps["attribute"])
-        if not ret:
+        if len(ret) < utils.NEWS_MAINTEXT_LOWER_BOUND:
             continue
         maps["selector"][host].append(selector)
         return ret
@@ -82,13 +85,14 @@ def get_redirection_link(url: str, redirect_dict: Dict[str, str]) -> str:
             continue
         key = key.group(1)
         return pre + key + post
+    return url
 
 
 def get_text_from_soup(
     soup: BeautifulSoup, host: str, attr_dict: Dict[str, str]
 ) -> str:
     """
-    css 셀렉터를 이용해 추출된 bs 객체에서, 기사 텍스트만 추출함
+    css 셀렉터를 이용해 추출된 bs 객체에서, 기사 텍스트만 추출하고 스트립함
     기본 동작은 soup.get_text()를 이용해 태그가 없는 텍스트만 추출
     다만, 일부 기사는 태그 내부 속성(attribute)에 기사 본문이 있는 경우가 있음
     이 경우 attr_dict의 매핑에 기반해서 해당 속성의 값 추출
@@ -104,8 +108,8 @@ def get_text_from_soup(
 
     key = attr_dict.get(host, "")
     if not key:
-        return soup.get_text()
-    return soup[key]
+        return soup.get_text().strip()
+    return soup[key].strip()
 
 
 def get_news_selector_from_host(host: str, selector_dict: Dict[str, str]) -> List[str]:
@@ -174,6 +178,7 @@ def main(keywords: list, filetype: utils.FileType, force_redo: bool = False) -> 
     }
     maps["selector"] = defaultdict(list, maps["selector"])
     maps["selector_set"] = set(sum(maps["selector"].values(), []))
+    maps["selector_set"].add("#article-view-content-div")
 
     for keyword in keywords:
         fname = f"{filetype.value}_with_text_{keyword}.txt"

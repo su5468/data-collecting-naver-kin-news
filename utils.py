@@ -21,32 +21,35 @@ urllib3.disable_warnings()
 MATERIALS = "materials"
 RESULTS = "results"
 
+NEWS_MAINTEXT_LOWER_BOUND = 300
+
 
 class FileType(Enum):
     """
     수집한 데이터 파일의 종류를 지정하는 Enum 타입
     데이터 수집 결과는 반드시 아래 타입 중 하나임
-    파일명은 f"{filetype.value}_{keyword}.txt" 형식임
+    파일명은 f"{filetype.value}_{keyword}.txt" 형식 또는
+    키워드를 특정할 수 없는 경우 f"{filetype.value}.txt" 형식임
     """
 
     WT = "_with_text"
 
     NEWS = "api_naver_news_result"
     NEWS_WT = NEWS + WT
-    NEWS_R = "news_result_related"
-    NEWS_R_WT = NEWS_R + WT
     KIN = "api_naver_kin_result"
     KIN_WT = KIN + WT
-    KIN_R = "kin_result_related"
-    KIN_R_WT = KIN_R + WT
 
     NEWS_RL = "api_gpt_relatedness_result"
-    NEWS_RL_WT = NEWS_RL + WT
+    NEWS_SIM = "naver_news_similarity"
 
     CRAWL_NEWS = "crawl_naver_news_result"
-    CRAWL_KIN = "crawl_naver_kin_result"
     CRAWL_NEWS_WT = CRAWL_NEWS + WT
+    CRAWL_KIN = "crawl_naver_kin_result"
     CRAWL_KIN_WT = CRAWL_KIN + WT
+
+    NEWS_PROCESSED = "naver_news_processed"
+    NEWS_PROCESSED_UNIQUE = "naver_news_unique"
+    KIN_PROCESSED = "naver_kin_processed"
 
 
 def get_id_secret() -> Tuple[str, str]:
@@ -242,9 +245,6 @@ def get_response_from_url(
             requests.exceptions.ChunkedEncodingError,
         ):
             time.sleep(2 ** (i - 1))
-        except requests.exceptions.TooManyRedirects as e:
-            print(e)
-            print(url)
     return None
 
 

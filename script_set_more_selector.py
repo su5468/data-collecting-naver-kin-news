@@ -15,7 +15,10 @@ def main(fname: str):
             host, *selectors = line.split()
             if not selectors:
                 continue
-            selector_dict[host].append(" ".join(selectors))
+            selector = " ".join(selectors)
+            if selector in selector_dict[host]:
+                continue
+            selector_dict[host].append(selector)
     utils.write_json_on_file(
         f"{utils.MATERIALS}/news_maintext_selectors1.txt", selector_dict
     )
