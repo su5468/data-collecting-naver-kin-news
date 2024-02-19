@@ -3,12 +3,25 @@
 import utils
 
 
-def main(fname1: str, fname2: str) -> None:
+def main(fname_hosts: str, fname_data: str) -> None:
+    """
+    script_가 접두사로 붙은 파일은,
+    전체 수집, 분석 과정에서 불필요한,
+    단순한 일회성 스크립트 파일임.
+    굳이 살펴볼 필요는 없으나 혹시 재사용할 경우에 대비하여 기록.
+
+    호스트 목록 파일과 json 기사 데이터셋 파일을 가지고,
+    호스트 목록 중 기사가 제대로 수집되지 않는 호스트들을 파일로 저장함.
+
+    Args:
+        fname_hosts (str): 호스트 목록 파일.
+        fname_data (str): json 기사 데이터셋 파일.
+    """
     selector_dict = utils.get_json_from_file(
         f"{utils.MATERIALS}/news_maintext_selectors.txt"
     )
-    articles = utils.get_json_from_file(fname2)["items"]
-    with open(fname1, "rt", encoding="utf8") as f:
+    articles = utils.get_json_from_file(fname_data)["items"]
+    with open(fname_hosts, "rt", encoding="utf8") as f:
         l = f.read().split("\n")
     res = []
     for host in l:
@@ -22,7 +35,7 @@ def main(fname1: str, fname2: str) -> None:
         ):
             continue
         res.append(host)
-    with open(f"unmapped_{fname1}.txt", "wt", encoding="utf8") as f:
+    with open(f"unmapped_{fname_hosts}.txt", "wt", encoding="utf8") as f:
         print(*res, sep="\n", file=f)
 
 

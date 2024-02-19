@@ -1,7 +1,4 @@
 #!python
-# feel free to use this.
-# if you have any question, contact me.
-# 조건희( su5468@korea.ac.kr )
 
 from types import ModuleType
 import re

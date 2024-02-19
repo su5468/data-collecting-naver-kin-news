@@ -1,9 +1,14 @@
 *.txt
+*.csv
 *.pdf
 *.png
 *.zip
 *.pptx
+*.html
 .vscode/
 .venv/
 __pycache__/
 materials/
+results/
+visualizations/
+ppt/

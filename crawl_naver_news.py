@@ -1,7 +1,4 @@
 #!python
-# feel free to use this.
-# if you have any question, contact me.
-# 조건희( su5468@korea.ac.kr )
 
 from typing import List
 import utils
@@ -9,14 +6,14 @@ import utils
 
 def main(keywords: List[str], force_redo: bool = False) -> None:
     """
-    웹 크롤링(스크래핑)을 통해 키워드들의 검색 결과를 파일로 저장함
+    웹 크롤링(스크래핑)을 통해 키워드들의 검색 결과를 파일로 저장함.
 
     Args:
-        keywords (List[str]): 키워드들의 리스트
-        force_redo (bool, optional): 이미 파일이 존재하는 경우에도 다시 수집할지의 여부. 기본적으로는 하지 않음
+        keywords (List[str]): 키워드들의 리스트.
+        force_redo (bool, optional): 이미 파일이 존재하는 경우에도 다시 수집할지의 여부. 기본적으로는 하지 않음.
     """
     for keyword in keywords:
-        fname = f"{utils.FileType.CRAWL_NEWS.value}_{keyword}.txt"
+        fname = utils.validify_fname(f"{utils.FileType.CRAWL_NEWS.value}_{keyword}.txt")
         if not force_redo and utils.already(fname):
             continue
 
@@ -26,4 +23,4 @@ def main(keywords: List[str], force_redo: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    main(["환자 의사 공유의사결정"])
+    main(['"환자 이해"', '"의료 의사 결정"', '"환자의사결정"'])
