@@ -1,6 +1,6 @@
 #!python
 
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Optional
 import pickle
 from urllib.parse import urlparse, parse_qs
 import numpy as np
@@ -8,12 +8,29 @@ import utils
 
 
 def get_similarity_matrix(
-    articles: List[Dict[str, str | List[str]]],
+    articles: List[Dict[str, Optional[str | List[str] | List[List[str]]]]],
     typestring: str,
     method: str,
     force_redo: bool,
 ) -> List[List[float]]:
-    fname = utils.get_filetype_from_typestring(typestring, "s").value
+    """
+    유사도 계산 방법에 기반하여,
+    각 게시글(아티클)별 유사도를 전부 계산한다.
+    이미 캐시된 파일이 있으면 이를 사용한다.
+    내부적으로 유사도 계산을 2차원 리스트로 하고 있는데,
+    numpy ndarray를 사용하면 개선이 가능할 수 있으므로 참고.
+
+    Args:
+        articles (List[Dict[str, Optional[str | List[str] | List[List[str]]]]]): json 데이터 파일에서 가져온 아티클 리스트.
+        typestring (str): 파일 종류를 나타내는 문자열. "news" | "kin"
+        method (str): 유사도 계산 방법을 나타내는 문자열. "jaccard" | "url".
+        force_redo (bool): 캐시된 파일을 재사용하지 않고 새로 계산할지의 여부.
+        - 기본은 True이며, 파일타입만 가지고 캐시의 존재여부를 확인하므로 의도적이지 않은 경우 True로 하는 것이 좋음.
+
+    Returns:
+        List[List[float]]: 유사도들의 2차원 리스트.
+    """
+    fname = utils.get_filetype_from_typestring(typestring, "s").value + f"_{method}"
     if not force_redo and utils.already(f"{fname}.txt"):
         with open(f"{fname}.txt", "rb") as f:
             return pickle.load(f)
@@ -24,7 +41,9 @@ def get_similarity_matrix(
         if not i % 100:
             print(f"{i}'th similarity computed")
         if method == "jaccard":
-            a = np.array(set(article["tokens"]))
+            a = np.array(article["tokens"])
+        elif method == "mixed":
+            a = np.array(article["tokens_answer"])
         for j in range(i + 1, n):
             if method == "jaccard":
                 b = np.array(set(articles[j]["tokens"]))

@@ -151,7 +151,9 @@ def get_news_text_from_url(url: str, maps: Dict[str, Dict[str, str] | Set[str]])
     return text
 
 
-def main(keywords: list, filetype: utils.FileType, force_redo: bool = False) -> None:
+def main(
+    keywords: List[str], filetype: utils.FileType, force_redo: bool = False
+) -> None:
     """
     키워드들을 가지고, 그 키워드에 대한 기사 링크 데이터를 찾아서,
     본문을 추가해 json 형태로 새로운 파일에 저장함.

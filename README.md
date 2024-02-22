@@ -25,6 +25,10 @@
 
 ## 빠른 시작
 
+### 데이터 수집/분석하기
+
+새로이 데이터를 수집하고 싶을 때는 아래 내용을 참조해주시기 바랍니다.
+
 1. `materials/config.ini`에 아래 항목을 설정합니다.
     - OpenAI API의 Key와 Organization 정보.
     - NAVER 검색 API의 ID와 Secret 정보.
@@ -33,12 +37,22 @@
 3. 해당 스크립트의 지시에 따라 데이터를 수집, 가공합니다.
 4. 수집한 데이터를 분석하고 싶다면 `visualization_and_analysis.ipynb`를 참조하십시오.
 
+### 데이터 확인하기
+
+데이터를 수집한 후, 혹은 이미 수집된 데이터를 확인하고 싶을 때 아래 내용을 참조해주시기 바랍니다.  
+자세한 내용은 아래 **디렉토리/파일 설명**에서도 확인 가능합니다.
+
+-   **최종 데이터(기사)**: 유관 데이터는 `naver_news_filtered_df_v3.csv`를 참조합니다. 전체 데이터는 `naver_news_unique.txt`를 참조합니다.
+-   **최종 데이터(지식IN)**: 유관 데이터는 `naver_kin_related.txt`를 참조합니다. 전체 데이터는 `naver_kin_unique.txt`를 참조합니다.
+-   **제거 이전 데이터(기사)**: 유사도 기반 제거가 이루어지지 않은 기사 데이터는 `naver_news_processed.txt`를 참조합니다.
+-   **제거 이전 데이터(지식IN)**: 유사도 기반 제거가 이루어지지 않은 지식IN 데이터는 `naver_kin_processed.txt`를 참조합니다.
+
 ## 디렉토리/파일 설명
 
 -   **materials**: 수집, 분석 과정에서 필요한 정보들이 저장되어 있습니다. 이 디렉토리는 전체공개되지 않았습니다. 디렉토리명을 다른 것으로 설정하고 싶다면 `utils.py`에서 `MATERIALS`를 다른 값으로 바꾸십시오.
     -   **bertopic_filter**: 분석에 사용된 BERTopic 모델 직렬화입니다. `bertopic.BERTopic.load()`를 통해 직렬화된 모델을 불러와서 재현성을 높일 수 있습니다.
     -   **config.ini**: OpenAI API 토큰, NAVER 검색 API 토큰, 지식IN 성인인증을 해제하기 위해 네이버에 로그인 된 브라우저의 쿠키가 포함된 컨피그 파일입니다.
-    -   **naver_news_topics.txt**: TODO
+    -   **naver_news_topics.txt**: 분석 과정에서 Semi-Supervised BERTopic을 위해 만들어낸 소형 레이블 데이터입니다. 일반적으로는 무시해도 됩니다.
     -   **news_maintext_attributes.txt**: 기사 본문이 텍스트가 아니라 HTML 태그의 속성으로 존재하는 경우 그 속성의 이름을 매핑하고 있는 json 파일입니다.
     -   **key**: 언론사 호스트.
     -   **value**: 해당 호스트 언론사의 기사 본문이 저장된 속성 이름.
@@ -64,9 +78,10 @@
     -   **naver_news_processed.txt**: 본문의 토큰화와 병합이 완료된 기사 데이터입니다.
     -   **naver_kin_unique.txt**: 유사도 검사 이후 중복된 게시글(아티클)을 제거한 지식IN 데이터입니다.
     -   **naver_news_unique.txt**: 유사도 검사 이후 중복된 게시글(아티클)을 제거한 기사 데이터입니다.
+    -   **naver_kin_related.txt**: 중복된 게시글(아티클)을 제거한 이후 공유의사결정에 유관한 데이터만 추출한 결과입니다.
     -   **naver_kin_similarity.txt**: 지식IN 유사도 검사에 대한 유사도 행렬의 바이너리 직렬화입니다.
     -   **naver_news_similarity.txt**: 기사 유사도 검사에 대한 유사도 행렬의 바이너리 직렬화입니다.
-    -   **naver_news_filtered_df.csv**: BERTopic 분석 이후 유관한 데이터만 추출한 csv 파일입니다.
+    -   **naver_news_filtered_df.csv**: 기사 대상 BERTopic 분석 이후 유관한 데이터만 추출한 csv 파일입니다.
 
 -   **visualizations**: 시각화 결과 파일을 저장하고 있는 디렉토리입니다. 이 디렉토리는 전체공개되지 않았습니다. 디렉토리명을 다른 것으로 설정하고 싶다면 `utils.py`에서 `VISUALIZATIONS`를 다른 값으로 바꾸십시오.
 -   **requirements.txt**: pip를 통해 생성한 의존성 모듈 목록입니다.
@@ -76,7 +91,7 @@
 -   **crawl_naver_news.py**: 네이버 뉴스 검색결과를 스크래핑하여 원하는 키워드의 기사 데이터(본문 미포함)를 수집합니다.
 -   **get_kin_maintext.py**: 검색 API로 수집한 데이터를 바탕으로 네이버 지식IN의 본문을 수집합니다.
 -   **get_news_maintext.py**: 검색 API 및 스크래핑으로 수집한 데이터를 바탕으로 인터넷 기사 본문을 수집합니다.
--   **get_relevant_articles.py**: TODO
+-   **get_relevant_articles.py**: OpenAI ChatGPT API를 사용하여 특정 주제(환자 의사 공유의사결정)에 관한 게시글(아티클)만 필터링합니다.
 -   **remove_similar_articles.py**: 지정된 유사도 측정 방법을 사용하여 유사하거나 같은 게시글(아티클)을 제거합니다.
 -   **tokenize_and_merge_data.py**: 기사 또는 지식IN 데이터의 본문을 토큰화하고 키워드별로 나누어진 데이터를 하나의 파일로 병합합니다.
 -   **script_get_errors_from_news_maintext.py**: 전체 수집 과정에서 불필요한 임시 스크립트입니다. 본문 수집 과정에서 본문이 제대로 수집되지 않은 기사의 호스트를 모두 확인합니다.
@@ -97,3 +112,4 @@
 2. **OOP**: 처음엔 이 스크립트가 이 정도로 불어날 거라고 생각은 못 했기 때문에, 결과 파일 종류를 단순히 파일명이 확인 가능한 Enum 타입으로 만들어 두었습니다. 필요하다면 결과 데이터 파일을 일부 속성(파일명, 키워드, 종류, 전처리 여부 등)을 추가한 파일 오브젝트로 구성해서, 불필요한 로직을 줄이고 코드 가독성을 높일 수 있습니다.
 3. **비동기**: HTTP 요청이 포함된 수집 과정은 비동기 프로그래밍을 통해 속도를 개선할 수 있습니다. 다만, 같은 호스트에 지나치게 집중적인 HTTP 요청을 보내는 것은 응답의 실패율을 늘릴 수 있기 때문에, 그 이득이 크지 않을 수 있어 굳이 시행하지 않았습니다.
 4. **분석 코드 정리 및 리팩토링**: 분석 및 시각화는 `visualization_and_analysis.ipynb`에 전체로 들어가 있습니다. 이 코드를 분리하고 리팩토링하면 가독성과 생산성을 확보할 수 있습니다.
+5. **타입 어노테이션 관련**: 함수 대상으로만 되어 있는 타입 어노테이션을 확장하고, 일부 자주 쓰이는 변수의 타입을 `utils.py`에 타입 변수로 분리시킬 수 있습니다. 단적인 예로, 각 게시글(아티클)의 타입은 `Dict[str, Optional[str | List[str] | List[List[str]]]]`인데, 이를 하나의 객체로 만들거나, 타입 변수를 사용하면 간략화할 수 있습니다.

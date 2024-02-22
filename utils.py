@@ -48,8 +48,7 @@ class FileType(Enum):
     KIN = RESULTS + "/" + "api_naver_kin_result"
     KIN_WT = KIN + WT
 
-    # 초기에 사용하였으나 Deprecated됨.
-    NEWS_RL = RESULTS + "/" + "api_gpt_relatedness_result"
+    # 유사도 행렬 캐시 바이너리 파일.
     NEWS_SIM = RESULTS + "/" + "naver_news_similarity"
     KIN_SIM = RESULTS + "/" + "naver_kin_similarity"
 
@@ -58,6 +57,10 @@ class FileType(Enum):
     CRAWL_NEWS_WT = CRAWL_NEWS + WT
     CRAWL_KIN = RESULTS + "/" + "crawl_naver_kin_result"
     CRAWL_KIN_WT = CRAWL_KIN + WT
+
+    # LLM 활용 관련도 검증 결과.
+    NEWS_R = RESULTS + "/" + "naver_news_related"
+    KIN_R = RESULTS + "/" + "naver_kin_related"
 
     # PROCESSED는 병합 및 토큰화가 완료된 파일임.
     # UNIQUE는 기준에 따라 중복 제거가 완료된 파일임.
@@ -75,7 +78,7 @@ def get_config() -> ConfigParser:
         ConfigParser: config.ini의 내용을 담고 있는 ConfigParser 객체.
     """
     config = ConfigParser()
-    config.read("materials/config.ini")
+    config.read("materials/config.ini", encoding="utf8")
     return config
 
 
@@ -156,6 +159,8 @@ def get_filetype_from_typestring(typestring: str, additional_info: str) -> FileT
             return FileType.CRAWL_NEWS
         case ("news", "cwt"):
             return FileType.CRAWL_NEWS_WT
+        case ("news", "r"):
+            return FileType.NEWS_R
         case ("news", "p"):
             return FileType.NEWS_PROCESSED
         case ("news", "u"):
@@ -171,6 +176,8 @@ def get_filetype_from_typestring(typestring: str, additional_info: str) -> FileT
             return FileType.CRAWL_KIN
         case ("kin", "cwt"):
             return FileType.CRAWL_KIN_WT
+        case ("kin", "r"):
+            return FileType.KIN_R
         case ("kin", "p"):
             return FileType.KIN_PROCESSED
         case ("kin", "u"):
@@ -202,7 +209,7 @@ def already(fname: str | List[str]) -> bool:
     fname이 리스트이면, 현재 폴더에서 fname 안의 모든 원소에 대해 확인한다.
 
     Args:
-        fname (str | list): 파일명 문자열(확장자 포함) 또는 파일명 문자열의 리스트.
+        fname (str | List[str]): 파일명 문자열(확장자 포함) 또는 파일명 문자열의 리스트.
 
     Returns:
         bool: 해당 파일들이 모두 이미 존재하는지의 여부.

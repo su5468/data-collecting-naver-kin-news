@@ -6,7 +6,7 @@ import utils
 
 
 def get_tokens(
-    article: Dict[str, Optional[str | List[str]]], typestring: str
+    article: Dict[str, Optional[str | List[str] | List[List[str]]]], typestring: str
 ) -> Tuple[List[str], List[str]]:
     """
     기사 또는 지식IN 게시글 딕셔너리와 종류를 알려주는 문자열을 받아서,
@@ -16,7 +16,7 @@ def get_tokens(
     반대급부로 토큰화 속도가 매우 느리므로, 최적화의 여지가 있다.
 
     Args:
-        article (Dict[str, Optional[str  |  List[str]]]): json 데이터 파일에서 불러온 게시글 하나의 딕셔너리.
+        article (Dict[str, Optional[str | List[str] | List[List[str]]]]): json 데이터 파일에서 불러온 게시글 하나의 딕셔너리.
         typestring (str): 파일 종류를 나타내는 문자열 "news" | "kin" | ...
 
     Returns:
